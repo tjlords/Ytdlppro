@@ -4,15 +4,15 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from downloader import download_video
 
-# Read credentials from environment variables
+# --- Environment Variables ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-API_ID = os.getenv("API_ID")       # Optional for Telethon/advanced
-API_HASH = os.getenv("API_HASH")   # Optional for Telethon/advanced
+API_ID = os.getenv("API_ID")       # optional for Telethon/advanced use
+API_HASH = os.getenv("API_HASH")   # optional for Telethon/advanced use
 
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable not set!")
 
-# ----- Command Handlers -----
+# --- Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Send me a YouTube link, and I will download and upload it!"
@@ -26,8 +26,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         filepath = download_video(url)
         file_size = os.path.getsize(filepath)
 
-        # Choose upload method based on file size
-        if file_size < 50 * 1024 * 1024:  # 50 MB
+        # Upload logic based on file size
+        if file_size < 50 * 1024 * 1024:  # 50 MB limit for send_video
             await msg.edit_text("Uploading video...")
             await update.message.reply_video(video=open(filepath, 'rb'))
         else:
@@ -40,7 +40,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
-# ----- Main -----
+# --- Main ---
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
