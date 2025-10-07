@@ -4,41 +4,47 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from downloader import download_video
 
-# --- Environment Variables ---
+# --- Environment Variables from Render ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-API_ID = os.getenv("API_ID")       # optional for Telethon/advanced use
-API_HASH = os.getenv("API_HASH")   # optional for Telethon/advanced use
+API_ID = os.getenv("API_ID")       # optional for future Telethon integration
+API_HASH = os.getenv("API_HASH")   # optional for future Telethon integration
 
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable not set!")
 
-# --- Handlers ---
+# --- Command Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Send me a YouTube link, and I will download and upload it!"
+        "Send me a YouTube link (video or playlist), optionally followed by quality (e.g., 1080, 720).\n"
+        "Example:\nhttps://youtube.com/watch?v=abcd1234 1080"
     )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    url = update.message.text
-    msg = await update.message.reply_text("Downloading video... This may take a while.")
+    text = update.message.text.strip()
+    parts = text.split()
+    url = parts[0]
+    quality = parts[1] if len(parts) > 1 else "best"
+
+    msg = await update.message.reply_text("Downloading video(s)... Please wait!")
 
     try:
-        filepath = download_video(url)
-        file_size = os.path.getsize(filepath)
+        files = download_video(url, quality=quality)
+        if not files:
+            await msg.edit_text("No videos were downloaded. Check URL or quality.")
+            return
 
-        # Upload logic based on file size
-        if file_size < 50 * 1024 * 1024:  # 50 MB limit for send_video
-            await msg.edit_text("Uploading video...")
-            await update.message.reply_video(video=open(filepath, 'rb'))
-        else:
-            await msg.edit_text("Uploading large video as document...")
-            await update.message.reply_document(document=open(filepath, 'rb'))
+        for fpath in files:
+            file_size = os.path.getsize(fpath)
+            if file_size < 50 * 1024 * 1024:  # 50 MB limit for send_video
+                await update.message.reply_video(video=open(fpath, 'rb'))
+            else:
+                await update.message.reply_document(document=open(fpath, 'rb'))
+            os.remove(fpath)
 
-        os.remove(filepath)  # Clean up
-        await msg.edit_text("Upload complete ✅")
+        await msg.edit_text("All downloads uploaded successfully ✅")
 
     except Exception as e:
-        await update.message.reply_text(f"Error: {e}")
+        await msg.edit_text(f"Error: {e}")
 
 # --- Main ---
 async def main():
