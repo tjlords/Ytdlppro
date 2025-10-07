@@ -9,7 +9,7 @@ def download_video(url, quality="bestvideo+bestaudio"):
         "format": quality,
         "outtmpl": os.path.join(DOWNLOAD_PATH, "%(title)s.%(ext)s"),
         "merge_output_format": "mp4",
-        "noplaylist": False,  # Download playlist if URL is playlist
+        "noplaylist": False,
         "quiet": True,
     }
 
@@ -20,6 +20,6 @@ def download_video(url, quality="bestvideo+bestaudio"):
             for entry in info_dict["entries"]:
                 filename = ydl.prepare_filename(entry)
                 file_path.append(filename)
-            return file_path[0]  # For simplicity, return first video path
+            return file_path
         else:
             return ydl.prepare_filename(info_dict)
