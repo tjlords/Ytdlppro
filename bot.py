@@ -6,15 +6,12 @@ from downloader import download_video
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello! Send me a YouTube link and optional quality (like '720').")
+    await update.message.reply_text("Hello! Send a YouTube link and optional quality (like '720').")
 
-# Help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Send a YouTube video or playlist link followed by desired quality (like 1080, 720).")
 
-# Handle messages
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text.startswith("https://") or text.startswith("http://"):
@@ -23,17 +20,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         quality = parts[1] if len(parts) > 1 else "bestvideo+bestaudio"
         await update.message.reply_text(f"Downloading {url} at quality {quality}...")
         try:
-            file_path = download_video(url, quality)
-            if isinstance(file_path, list):
-                # playlist: send first video only for now
-                file_path = file_path[0]
-            await update.message.reply_document(open(file_path, "rb"))
+            file_paths = download_video(url, quality)
+            if not isinstance(file_paths, list):
+                file_paths = [file_paths]
+            for file_path in file_paths:
+                await update.message.reply_document(open(file_path, "rb"))
         except Exception as e:
             await update.message.reply_text(f"Error: {str(e)}")
     else:
         await update.message.reply_text("Send a valid YouTube URL.")
 
 async def main():
+    # Use ApplicationBuilder, not Updater
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
